@@ -42,14 +42,16 @@
 	Scott Knights.
 	V 1.20220503.1
 		Initial release
+	V 1.20220503.2
+		Added extra error trapping
 
     .EXAMPLE
 	Remove-ADUnresolvedSID.ps1
 		Report all objects in the current domain that have unresolved SIDs in their ACL.
 
     .EXAMPLE
-	Remove-ADUnresolvedSID.ps1 -searchbase "OU=corp,DC=org,DC=com" -containeronly -showpermissions
-		Report all containers inside the OU "OU=corp,DC=org,DC=com". 
+	Remove-ADUnresolvedSID.ps1 -searchbase "OU=corp,DC=com" -containeronly -showpermissions
+		Report all containers inside the OU "OU=corp,DC=com". 
 		Show permissions for each container.
 
     .EXAMPLE
@@ -110,7 +112,12 @@ function Get-Permission {
 		[string]$objectname
 	)
 
-	[Microsoft.ActiveDirectory.Management.ADEntity]$object = get-item AD:$objectname
+	try {
+		[Microsoft.ActiveDirectory.Management.ADEntity]$object = get-item AD:$objectname -erroraction stop
+	} catch {
+		write-message "Error processing $objectname" -colour red
+		return
+	}
  	[string]$objectDN = $object.distinguishedname
 	[System.Security.AccessControl.DirectoryObjectSecurity]$acl = get-ACL AD:$object
 	[string]$oldsid = $null
@@ -154,10 +161,14 @@ Function Recurse-Container {
 	)
 
 	# Create array of subobjects to process. Only get containers if the containeronly switch is true, otherwise get all objects.
-	If ($containeronly) {
-		$ObjectList = get-childitem AD:$parent -force | where-object { ($_.ObjectClass -like "container") -or ($_.ObjectClass -like "OrganizationalUnit") }
-	} else {
-		$ObjectList = get-childitem AD:$parent -force
+	try {
+		If ($containeronly) {
+			$ObjectList = get-childitem AD:$parent -force | where-object { ($_.ObjectClass -like "container") -or ($_.ObjectClass -like "OrganizationalUnit") }
+		} else {
+			$ObjectList = get-childitem AD:$parent -force
+		}
+	} catch {
+		return
 	}
 	foreach ($object in $ObjectList) {
 		[string]$objectDN = $object.Distinguishedname
