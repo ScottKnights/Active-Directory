@@ -1,4 +1,6 @@
-﻿<#
+﻿#Requires -Version 5
+#Requires -Modules ActiveDirectory
+<#
     .SYNOPSIS
 	Get boot time and uptime for selected machines
     .DESCRIPTION
@@ -14,6 +16,8 @@
 	Switch. report on PCs only
     .PARAMETER filter
 	String. Filter to select specific machines
+    .PARAMETER searchbase
+	String. Root DN to search. Default is root of domain
 
     .INPUTS
 
@@ -42,6 +46,7 @@
 # ============================================================================
 #region Parameters
 # ============================================================================
+[CmdletBinding()]
 Param(
     [Parameter()]
     [String] $reportfile=".\uptimereport.csv",
@@ -56,7 +61,11 @@ Param(
     [switch]$pcs,
 
     [Parameter()]
-    [string]$filter
+    [string]$filter,
+
+    [Parameter()]
+    [string]$searchbase=((Get-ADDomain).distinguishedname)
+
 )
 #endregion Parameters
 
@@ -82,6 +91,7 @@ Param(
 # ============================================================================
 #region Execute
 # ============================================================================
+Set-StrictMode -Version 3.0
 # Check if the report file already exists. Delete it if $overwritereportfile is selected.
 if (test-path -literalpath $reportfile) {
 	if ($overwritereportfile) {
@@ -99,13 +109,13 @@ if (test-path -literalpath $reportfile) {
 
 # Get selected machines or just get all machines with Windows OS.
 if ($filter) {
-	$machines=get-adcomputer -filter {name -like $filter}
+	$machines=get-adcomputer -filter {name -like $filter} -searchbase $searchbase
 } elseif ($servers) {
-	$machines=get-adcomputer -filter {operatingsystem -like "*windows*" -and operatingsystem -like "*server*"}
+	$machines=get-adcomputer -filter {operatingsystem -like "*windows*" -and operatingsystem -like "*server*"} -searchbase $searchbase
 } elseif ($pcs) {
-	$machines=get-adcomputer -filter {operatingsystem -like "*windows*" -and operatingsystem -notlike "*server*"}
+	$machines=get-adcomputer -filter {operatingsystem -like "*windows*" -and operatingsystem -notlike "*server*"} -searchbase $searchbase
 } else {
-	$machines=get-adcomputer -filter {operatingsystem -like "*windows*"}
+	$machines=get-adcomputer -filter {operatingsystem -like "*windows*"} -searchbase $searchbase
 }
 $numcomp=$machines.count
 
