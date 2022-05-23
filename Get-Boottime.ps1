@@ -7,7 +7,7 @@
 	Get boot time for uptime for selected machines. Can select servers only, workstations only, filter on specific names or all Windows machines.
 	Write results to a CSV file.
     .PARAMETER reportfile
-	String. Output report file. Defaults to .\FolderPermissions.csv.
+	String. Output report file. Defaults to .\uptimereport.csv.
     .PARAMETER overwritereportfile
 	Switch. Overwrite the report file if it already exists.
     .PARAMETER servers
